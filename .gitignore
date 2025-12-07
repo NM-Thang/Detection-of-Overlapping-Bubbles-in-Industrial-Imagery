@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+# Project Data (Large files)
+data/
+Examples/
+
+# Models & Weights
+Models/
+*.h5
+*.pth
+*.weights
+
+# Logs
+logs/
+*.log
+
+# VS Code
+.vscode/
+
+# System
+.DS_Store
+Thumbs.db
