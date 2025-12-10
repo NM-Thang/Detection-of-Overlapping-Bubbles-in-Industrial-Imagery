@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 import math
 import numpy.linalg as lag
-# from numba import jit  # Commented out - not using numba anymore
 import csv
 from PIL import Image
 from matplotlib.patches import Ellipse
@@ -16,35 +15,6 @@ from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import interp1d
 from matplotlib.widgets import Button
 
-def radial_distance_correction(dists, touch=None, sigma=1.5):
-    """
-    dists: (n_rays,)
-    touch: (n_rays,) boolean array — Rdc.points[:,2]
-           1 = tiếp xúc bubble khác → cần sửa
-           0 = rìa thật
-    """
-
-    n = len(dists)
-    d = dists.copy()
-
-    # Step 1 — smooth
-    d_smooth = gaussian_filter1d(d, sigma=sigma, mode="wrap")
-
-    # Step 2 — detect missing rays (flag touch == 1 hoặc outlier)
-    if touch is None:
-        touch = np.zeros(n, dtype=bool)
-
-    invalid = np.logical_or(touch == 1, d_smooth < np.percentile(d_smooth, 5))
-
-    if np.any(invalid):
-        valid_idx = np.where(~invalid)[0]
-        invalid_idx = np.where(invalid)[0]
-
-        # Nội suy tròn
-        f = interp1d(valid_idx, d_smooth[valid_idx], kind='linear', fill_value="extrapolate")
-        d_smooth[invalid_idx] = f(invalid_idx)
-
-    return d_smooth
 
 
 class RDObj():
@@ -159,185 +129,6 @@ class RDObj():
                 if point[2]==1:
                     dist_lines[counter,0,0]=point[1]
                     dist_lines[counter,0,1]=point[0]
-import numpy as np
-from numpy.lib import stride_tricks as st
-from skimage.draw import polygon_perimeter,polygon
-import matplotlib.pyplot as plt
-from matplotlib.collections import LineCollection
-import math
-import numpy.linalg as lag
-# from numba import jit  # Commented out - not using numba anymore
-import csv
-from PIL import Image
-from matplotlib.patches import Ellipse
-from skimage.measure import EllipseModel
-import json
-from scipy.ndimage.filters import uniform_filter1d
-from scipy.ndimage import gaussian_filter1d
-from scipy.interpolate import interp1d
-from matplotlib.widgets import Button
-
-def radial_distance_correction(dists, touch=None, sigma=1.5):
-    """
-    dists: (n_rays,)
-    touch: (n_rays,) boolean array — Rdc.points[:,2]
-           1 = tiếp xúc bubble khác → cần sửa
-           0 = rìa thật
-    """
-
-    n = len(dists)
-    d = dists.copy()
-
-    # Step 1 — smooth
-    d_smooth = gaussian_filter1d(d, sigma=sigma, mode="wrap")
-
-    # Step 2 — detect missing rays (flag touch == 1 hoặc outlier)
-    if touch is None:
-        touch = np.zeros(n, dtype=bool)
-
-    invalid = np.logical_or(touch == 1, d_smooth < np.percentile(d_smooth, 5))
-
-    if np.any(invalid):
-        valid_idx = np.where(~invalid)[0]
-        invalid_idx = np.where(invalid)[0]
-
-        # Nội suy tròn
-        f = interp1d(valid_idx, d_smooth[valid_idx], kind='linear', fill_value="extrapolate")
-        d_smooth[invalid_idx] = f(invalid_idx)
-
-    return d_smooth
-
-
-class RDObj():
-    """ RadialDistanceObject class
-    
-    Parameters
-    ----------
-    id : int
-        Object ID.
-    num_rays: ing
-        Number of radial rays defining the object.
-    center: Tuple
-        Tuple (y,x) for the center coordinates of the object.
-    dists:  
-        Array (y,x) containing the length of each radial ray from the center to the object boundary.
-    points:
-        Numpy array (y,x,bool) containing the position of the radial end points and a bool whether the point touches
-        another segmentation instance or not.
-    """
-    
-    
-    def __init__(self,id,num_rays,center=None,dists=None,points=None):
-        self.id = id
-        self.num_rays = num_rays
-        self.center = center
-        self.dists = dists
-        self.points=points
-
-    def getCenter(self,img):
-        points=np.argwhere(img==self.id)
-        if len(points)>0:
-            self.center=(np.mean(points[:,0]),np.mean(points[:,1]))
-
-    def touchImgBorder(self,img,i,j):
-        if (i>=len(img))or(i<=0)or(j>=len(img[0]))or(j<=0):
-            return True
-        return False
-
-    def generateRD_manual(self,img):
-        phis = np.linspace(0,2*np.pi,self.num_rays,endpoint=False)
-        if (self.center is None):
-            self.getCenter(img)   
-        if (self.center is None):
-            return   
-        distx=np.ones(phis.shape)*np.cos(phis)
-        disty=np.ones(phis.shape)*np.sin(phis)
-        stretch=5
-        points=np.zeros((len(phis),3))
-        StretchBool=True
-        mask=img!=self.id
-        mask[:,0]=1
-        mask[:,len(mask[0])-1]=1
-        mask[0,:]=1
-        mask[len(mask)-1,:]=1
-        while StretchBool:
-            points_strechted=[(self.center[0]+disty*stretch),(self.center[1]+distx*stretch)] 
-            points_strechted[0]=np.where(points_strechted[0]<0,0,points_strechted[0])
-            points_strechted[1]=np.where(points_strechted[1]<0,0,points_strechted[1])
-            points_strechted[0]=np.where(points_strechted[0]>=len(img)-1,len(img)-1,points_strechted[0])
-            points_strechted[1]=np.where(points_strechted[1]>=len(img[0])-1,len(img[0])-1,points_strechted[1])
-            touch_mask=mask[points_strechted[0].astype(int),points_strechted[1].astype(int)]
-            compare=((points[:,2]!=1)&(touch_mask==1))
-            points[:,0]+=(self.center[0]+disty*(stretch-1))*compare
-            points[:,1]+=(self.center[1]+distx*(stretch-1))*compare
-            points[:,2]=np.where(compare==1,1,points[:,2])
-            stretch+=1
-            if (np.count_nonzero(points[:,2]==0)==0):
-                StretchBool=False  
-
-        self.dists=np.sqrt(np.square(self.center[0]-points[:,0])+np.square(self.center[1]-points[:,1]))       
-        points[:,2]=0
-        self.points=points.astype(int)
-        self.getTouchingCandidates(img)
-
-    def getTouchingCandidates(self,img):
-        LabelNeighbors = st.sliding_window_view(np.pad(img, 1), (3, 3))    
-        for point in self.points:
-            if (point[0]<len(img))and(point[1]<len(img[0]))and(point[0]>=0)and(point[1]>=0):
-                if (np.count_nonzero(LabelNeighbors[int(point[0]),int(point[1])]==0)==0)or(self.touchImgBorder(img,int(point[0]),int(point[1]))==True):
-                    point[2]=1
-            else:
-                point[2]=1
-
-    def transformRDToArray(self,metric):
-        RDArray=self.dists*metric
-        return RDArray
-
-    def stretchPoints(self,stretch):
-        phis = np.linspace(0,2*np.pi,self.num_rays,endpoint=False) 
-        distx=np.ones(phis.shape)*np.cos(phis)
-        disty=np.ones(phis.shape)*np.sin(phis)
-        self.points[:,0]=(self.center[0]+disty*stretch).astype(int) 
-        self.points[:,1]=(self.center[1]+distx*stretch).astype(int) 
-
-    def drawRD(self,ax,color='g',linewidths=0.6):
-        dist_lines=np.empty((self.num_rays,2,2))
-        if len(self.points)==0:
-            print("No Endpoints evaluated so far. Try generateRD_manual() function")
-        else:
-            dist_lines[:,0,0] = self.points[:,1]
-            dist_lines[:,0,1] = self.points[:,0]
-            dist_lines[:,1,0] = self.center[1]
-            dist_lines[:,1,1] = self.center[0]
-            ax.add_collection(LineCollection(dist_lines, colors=color, linewidths=linewidths))
-    
-    def drawTouchingCandidates(self,ax,color='r',linewidths=0.6):
-        num_candidates=np.count_nonzero(self.points[:,2]==1)
-        if num_candidates>0:
-            dist_lines=np.empty((num_candidates,2,2))
-            counter=0
-            for point in self.points:
-                if point[2]==1:
-                    dist_lines[counter,0,0]=point[1]
-                    dist_lines[counter,0,1]=point[0]
-                    counter+=1
-            dist_lines[:,1,0] = self.center[1]
-            dist_lines[:,1,1] = self.center[0]
-            ax.add_collection(LineCollection(dist_lines, colors=color, linewidths=linewidths))
-
-    def plot_polygon(self,ax,color='g',lineType='--',linewidth=1.2):
-        a,b = list(self.points[:,1]),list(self.points[:,0])
-        a += a[:1]
-        b += b[:1]
-        ax.plot(a,b,lineType, alpha=1,  zorder=1, color=color,linewidth=linewidth)  
-
-    def polygon_on_img(self,shape):
-        img=np.zeros(shape).astype(int)
-        r = np.array(self.points[:,0])
-        c = np.array(self.points[:,1])
-        rr, cc = polygon(r, c)
-        img[rr, cc] = 1      
-        return img
 
 class Bubble():
     """ RadialDistanceObject class
@@ -366,7 +157,7 @@ class Bubble():
         Object ID.
     """
     
-    def __init__(self,points,metric,Diameter=None,Position=None,Major=None,Minor=None,Volume=None,Timestep=0.0,Velocity=None,ID=1):
+    def __init__(self,points,metric,Diameter=None,Position=None,Major=None,Minor=None,Volume=None,Timestep=0.0,Velocity=None,ID=1,Rays=None):
         if Diameter==None:
             Major,Minor,Volume,Diameter,Position=self.getBubbleProps(points,metric)
         self.Diameter=Diameter
@@ -377,6 +168,7 @@ class Bubble():
         self.Timestep=Timestep
         self.Velocity=Velocity
         self.ID=ID
+        self.Rays=Rays
 
 
     def getBubbleProps(self,points,metric):
@@ -629,7 +421,7 @@ class BubbleStepper:
         elif event.key == 'left':
             self.prev()
 
-def HiddenReco(labels,metric,timestep=0,useRDC=False,model=None,boolPlot=False,ax=None,OnlyPoints=False,step_plot=True):
+def HiddenReco(labels,metric,timestep=0,useRDC=False,model=None,boolPlot=False,ax=None,OnlyPoints=False,step_plot=True,return_visuals=False):
     if ax is None and boolPlot:
         ax = plt.gca()
     if model==None:
@@ -650,9 +442,10 @@ def HiddenReco(labels,metric,timestep=0,useRDC=False,model=None,boolPlot=False,a
                     RDArray=Rdc.transformRDToArray(metric)
                     yhat = model.predict(np.asarray([RDArray]))
                     stretch=yhat[0]/metric
-                    stretch=np.where(stretch*Rdc.points[:,2]>Rdc.dists,stretch,Rdc.dists)
-                    stretch=uniform_filter1d(stretch,size=4)
+                    # stretch=np.where(stretch*Rdc.points[:,2]>Rdc.dists,stretch,Rdc.dists)
+                    # stretch=uniform_filter1d(stretch,size=4)
                     Rdc.stretchPoints(stretch)
+                    Rdc.dists = stretch
 
                 if OnlyPoints:
                     points=Rdc.points[:,:2]
@@ -669,7 +462,7 @@ def HiddenReco(labels,metric,timestep=0,useRDC=False,model=None,boolPlot=False,a
                     })
                 
                 if OnlyPoints==False:    
-                    Bub=Bubble(Rdc.points,metric,Timestep=timestep,ID=i)
+                    Bub=Bubble(Rdc.points,metric,Timestep=timestep,ID=i,Rays=Rdc.dists)
                     if Bub.Diameter is not None:
                         Bubbles.append(Bub)
             else:
@@ -717,6 +510,9 @@ def HiddenReco(labels,metric,timestep=0,useRDC=False,model=None,boolPlot=False,a
                     d_Sphere=(6*V_Ellipsoid/math.pi)**(1/3)
                     Bubbles.append(Bubble(None,None,Diameter=d_Sphere,Position=[y0,x0],Major=a,Minor=b,Volume=V_Ellipsoid,Timestep=timestep))
     
+    if return_visuals:
+        return Bubbles, VisualItems
+
     if boolPlot and step_plot and VisualItems:
         BubbleStepper(ax, VisualItems)
     elif boolPlot and VisualItems:
@@ -747,17 +543,17 @@ def SaveCSV_List(Bubbles,directory,name,header=None):
         wr.writerow(bub.ValuesToString())
     f.close()
 
-def scale(X,x_min,x_max):
-    nom=(X-X.min())*(x_max-x_min)
-    denom=X.max()-X.min()
-    denom=denom+(denom == 0)
-    return x_min + nom/denom
+# def scale(X,x_min,x_max):
+#     nom=(X-X.min())*(x_max-x_min)
+#     denom=X.max()-X.min()
+#     denom=denom+(denom == 0)
+#     return x_min + nom/denom
 
-def Save_Labels(labels,directory,name,scaleGrey=False):
-    if scaleGrey==True:
-        labels=scale(labels,0,255)
-    img=Image.fromarray(labels.astype('uint8'))
-    img.save(directory+name+".png")
+# def Save_Labels(labels,directory,name,scaleGrey=False):
+#     if scaleGrey==True:
+#         labels=scale(labels,0,255)
+#     img=Image.fromarray(labels.astype('uint8'))
+#     img.save(directory+name+".png")
 
 def polygon_peri(points):
     r = np.array(points[:,0])
@@ -785,18 +581,18 @@ def getMaxDistAxis(points):
 
     return MaxdistP1,MaxdistP2
 
-def writeOutJSONPoints(Bubbles,directory,name):
-    Bubbles_dict=[]
-    for bub in Bubbles:
-        Bubble_dict={}
-        Bubble_dict['ID']=bub[0]
-        XPoints=[]
-        YPoints=[]
-        for b in bub[1]:
-            YPoints.append(int(b[0]))
-            XPoints.append(int(b[1]))
-        Bubble_dict['YPoints']=YPoints 
-        Bubble_dict['XPoints']=XPoints 
-        Bubbles_dict.append(Bubble_dict)
-    with open(directory+name+'.json',"w") as out:
-        json.dump(Bubbles_dict,out,indent=1)
+# def writeOutJSONPoints(Bubbles,directory,name):
+#     Bubbles_dict=[]
+#     for bub in Bubbles:
+#         Bubble_dict={}
+#         Bubble_dict['ID']=bub[0]
+#         XPoints=[]
+#         YPoints=[]
+#         for b in bub[1]:
+#             YPoints.append(int(b[0]))
+#             XPoints.append(int(b[1]))
+#         Bubble_dict['YPoints']=YPoints 
+#         Bubble_dict['XPoints']=XPoints 
+#         Bubbles_dict.append(Bubble_dict)
+#     with open(directory+name+'.json',"w") as out:
+#         json.dump(Bubbles_dict,out,indent=1)
