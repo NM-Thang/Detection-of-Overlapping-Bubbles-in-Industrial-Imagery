@@ -4,6 +4,7 @@ from matplotlib.patches import Ellipse
 from skimage.measure import EllipseModel
 import math
 import csv
+from scipy.ndimage import uniform_filter1d
 
 from .structures import RDObj, Bubble
 from .stepper import BubbleStepper
@@ -29,6 +30,7 @@ def HiddenReco(labels,metric,timestep=0,useRDC=False,model=None,boolPlot=False,a
                     RDArray=Rdc.transformRDToArray(metric)
                     yhat = model.predict(np.asarray([RDArray]))
                     stretch=yhat[0]/metric
+                    stretch=uniform_filter1d(stretch,size=4)
                     Rdc.stretchPoints(stretch)
                     Rdc.dists = stretch
 

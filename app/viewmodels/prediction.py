@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import os
 import threading
-from app.models.inference_engine import InferenceEngine
+from app.services.inference_engine import InferenceEngine
 from app.utils.validators import validate_directory_path, validate_metric
 
 class PredictionViewModel:
@@ -45,8 +45,12 @@ class PredictionViewModel:
             self._reset_model_status()
 
     def select_rdc_model(self):
-        # RDC: Select .h5 File
-        path = filedialog.askopenfilename(title="Select RDC Model File", filetypes=[("H5 Files", "*.h5")])
+        # RDC: Select .h5 File OR Folder
+        if messagebox.askyesno("Select RDC Model Type", "Do you want to select a Folder containing the SavedModel?\n\nYes: Select Folder\nNo: Select .h5 File"):
+            path = filedialog.askdirectory(title="Select RDC Model Folder")
+        else:
+            path = filedialog.askopenfilename(title="Select RDC Model File", filetypes=[("H5 Files", "*.h5"), ("All Files", "*.*")])
+            
         if path:
             self.rdc_model_path.set(path)
             self._reset_model_status()
