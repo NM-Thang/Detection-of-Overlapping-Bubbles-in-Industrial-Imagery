@@ -38,14 +38,12 @@ class PredictionViewModel:
         self.on_transfer_request = None
 
     def select_sd_model(self):
-        # StarDist: Select Folder
         path = filedialog.askdirectory(title="Select StarDist Model Folder (e.g. data_mix_64_400)")
         if path:
             self.sd_model_path.set(path)
             self._reset_model_status()
 
     def select_rdc_model(self):
-        # RDC: Select .h5 File OR Folder
         if messagebox.askyesno("Select RDC Model Type", "Do you want to select a Folder containing the SavedModel?\n\nYes: Select Folder\nNo: Select .h5 File"):
             path = filedialog.askdirectory(title="Select RDC Model Folder")
         else:
@@ -65,7 +63,7 @@ class PredictionViewModel:
             path = filedialog.askdirectory()
             if path:
                 self.input_path_display.set(path)
-                self.selected_files = [] # Clear files
+                self.selected_files = [] 
         else:
             files = filedialog.askopenfilenames(
                 title="Select Images",
@@ -89,7 +87,6 @@ class PredictionViewModel:
             
             success, msg = self.engine.load_models(sd_path, rdc_path)
             
-            # Update UI on Main Thread
             def _update():
                 self.is_processing.set(False)
                 if success:
@@ -118,14 +115,12 @@ class PredictionViewModel:
                 messagebox.showwarning("Invalid Input", f"Folder error: {msg_folder}")
                 return
             input_data = folder
-            # For open_results logic, we can track this folder
             self.last_input_context = folder
         else:
             if not self.selected_files:
                 messagebox.showwarning("Invalid Input", "No files selected.")
                 return
             input_data = self.selected_files
-            # For open_results logic, track parent of first file?
             if self.selected_files:
                 self.last_input_context = os.path.dirname(self.selected_files[0])
 
@@ -150,7 +145,6 @@ class PredictionViewModel:
         self.progress_text.set("Initializing...")
         
         def _bg_task():
-            # Progress Callback
             def _progress(current, total, msg):
                 def _ui_update():
                     self.progress_text.set(f"{msg}")
@@ -159,14 +153,12 @@ class PredictionViewModel:
                          self.progress_value.set(percent)
                 self.root.after(0, _ui_update)
 
-            # Run Engine
             count, root_dir = self.engine.process_batch(input_data, metric_val, _progress)
             
             def _finish():
                 self.is_processing.set(False)
                 self.progress_text.set(f"Finished. Processed {count} images.")
                 
-                # Store visualization context
                 if count > 0 and root_dir:
                     self.last_result_root = root_dir
                     self.can_visualize.set(True)
@@ -180,8 +172,6 @@ class PredictionViewModel:
     def request_visualization_transfer(self):
         if self.can_visualize.get() and self.last_result_root:
             if self.on_transfer_request:
-                # We essentially pass the metadata path.
-                # InferenceEngine guarantees metadata.txt is created in root_dir if count > 0
                 meta_path = os.path.join(self.last_result_root, 'metadata.txt')
                 if os.path.exists(meta_path):
                     self.on_transfer_request(meta_path)
@@ -189,7 +179,6 @@ class PredictionViewModel:
                     messagebox.showerror("Error", "Metadata file not found in output directory.")
 
     def open_result_folder(self):
-        # Open 'results' folder in the last input context
         if hasattr(self, 'last_input_context') and os.path.exists(self.last_input_context):
             res_path = os.path.join(self.last_input_context, 'results')
             if os.path.exists(res_path):
