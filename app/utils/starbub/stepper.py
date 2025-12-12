@@ -122,6 +122,11 @@ class BubbleStepper:
     def on_click(self, event):
         if event.inaxes != self.ax:
             return
+            
+        # Only handle left click as requested
+        if event.button != 1:
+            return
+            
         click_x, click_y = event.xdata, event.ydata
         
         matches = []
@@ -261,7 +266,7 @@ class BubbleStepper:
         ax.set_title(f'Bubble {title_id} Detail View')
         ax.set_aspect('equal')
         plt.tight_layout()
-        plt.show()
+        plt.show(block=False)
 
     def on_key(self, event):
         if event.key == 'right':
