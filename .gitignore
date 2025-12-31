@@ -14,7 +14,6 @@ env/
 # Project Data (Large files)
 data/
 !data/README.md
-Examples/
 
 # Models & Weights
 Models/
