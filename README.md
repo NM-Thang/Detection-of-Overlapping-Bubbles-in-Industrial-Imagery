@@ -17,14 +17,14 @@ The project consists of a research pipeline for model development and a desktop 
   <img src="images/Prediction.png" alt="Prediction" width="70%">
 </p>
 <p align="center">
-  <em>Figure 1: StarDist Prediction Result</em>
+  <em>Figure 1: StarDist Prediction</em>
 </p>
 
 <p align="center">
-  <img src="images/visualization.png" alt="RDC Visualization" width="70%">
+  <img src="images/visualization.png" alt="Shape Reconstruction Visualization" width="70%">
 </p>
 <p align="center">
-  <em>Figure 2: RDC Shape Reconstruction Visualization</em>
+  <em>Figure 2: Shape Reconstruction Visualization</em>
 </p>
 
 ## Downloads
@@ -51,18 +51,11 @@ For detailed instructions, see `models/README.md` and `data/README.md`.
 
 ## Installation
 
-1.  **Clone the repository:**
-    ```bash
-    git clone <your-repo-url>
-    cd <repo-directory>
-    ```
-
-2.  **Install Dependencies:**
-    It is recommended to use a virtual environment (Python 3.7+).
-    ```bash
-    pip install -r requirements.txt
-    ```
-    *Key dependencies include: `stardist`, `tensorflow`, `numpy`, `pandas`, `opencv-python`, `scikit-image`, `matplotlib`.*
+It is recommended to use a virtual environment (Python 3.7+).
+```bash
+pip install -r requirements.txt
+```
+*Key dependencies include: `stardist`, `tensorflow`, `numpy`, `pandas`, `opencv-python`, `scikit-image`, `matplotlib`.*
 
 ## Usage
 
