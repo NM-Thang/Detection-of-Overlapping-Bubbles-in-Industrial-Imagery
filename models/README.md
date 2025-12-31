@@ -9,4 +9,4 @@ Due to file size limits, the trained models are hosted externally.
 2. Extract the contents into this directory (`models/`).
 3. Ensure the structure looks like this:
    - `models/SDmodel/`
-   - `models/RDCmodel/`
+   - `models/RDC/`

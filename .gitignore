@@ -11,15 +11,13 @@ env/
 .ipynb_checkpoints/
 */.ipynb_checkpoints/
 
-# Project Data (Large files)
+# Project Data
 data/
 !data/README.md
 
 # Models & Weights
-Models/
 models/
 !models/README.md
-!Models/README.md
 *.h5
 *.pth
 *.weights
